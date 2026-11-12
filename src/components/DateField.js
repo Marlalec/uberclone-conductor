@@ -7,12 +7,13 @@ const DEFAULT_DATE = new Date(2000, 0, 1);
 
 const formatDate = (date) => date.toLocaleDateString('es-CO');
 
-export default function DateField({ label, value, onChange, error, maximumDate }) {
+export default function DateField({ label, value, onChange, error, maximumDate, minimumDate }) {
+  const initialDate = value ?? minimumDate ?? DEFAULT_DATE;
   const [visible, setVisible] = useState(false);
-  const [tempDate, setTempDate] = useState(value ?? DEFAULT_DATE);
+  const [tempDate, setTempDate] = useState(initialDate);
 
   const open = () => {
-    setTempDate(value ?? DEFAULT_DATE);
+    setTempDate(initialDate);
     setVisible(true);
   };
 
@@ -38,7 +39,13 @@ export default function DateField({ label, value, onChange, error, maximumDate }
       </Pressable>
       {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
       {visible && Platform.OS === 'android' ? (
-        <DateTimePicker value={tempDate} mode="date" maximumDate={maximumDate} onChange={handleAndroidChange} />
+        <DateTimePicker
+          value={tempDate}
+          mode="date"
+          maximumDate={maximumDate}
+          minimumDate={minimumDate}
+          onChange={handleAndroidChange}
+        />
       ) : null}
       {Platform.OS === 'ios' ? (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
@@ -50,6 +57,7 @@ export default function DateField({ label, value, onChange, error, maximumDate }
                 display="spinner"
                 themeVariant="light"
                 maximumDate={maximumDate}
+                minimumDate={minimumDate}
                 onChange={(event, date) => date && setTempDate(date)}
               />
               <Pressable style={buttonStyles.button} onPress={confirmIos}>

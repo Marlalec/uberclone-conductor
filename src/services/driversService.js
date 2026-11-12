@@ -1,5 +1,9 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { uploadImage } from './cloudinaryService';
+import { COMMISSION_RATE } from '../config/pricing';
+import { toDateString } from '../utils/dates';
+import { requiresTechnicalInspection } from '../utils/validators';
 
 export const DRIVER_STATUS = {
   PENDING: 'pending_approval',
@@ -8,7 +12,21 @@ export const DRIVER_STATUS = {
 
 export const DRIVER_EXISTS_ERROR = 'DRIVER_EXISTS';
 
-export const registerDriver = async ({ personalData, vehicle }) => {
+const uploadDriverPhotos = async (driverId, { personalData, vehicle, documents }, needsInspection) => {
+  const folder = `uberclone-conductor/drivers/${driverId}`;
+  const [profilePhotoUrl, vehiclePhotoUrl, licensePhotoUrl, soatPhotoUrl, technicalInspectionPhotoUrl] =
+    await Promise.all([
+      uploadImage(personalData.profilePhoto, folder),
+      uploadImage(vehicle.vehiclePhoto, folder),
+      uploadImage(documents.licensePhoto, folder),
+      uploadImage(documents.soatPhoto, folder),
+      needsInspection ? uploadImage(documents.technicalInspectionPhoto, folder) : null,
+    ]);
+
+  return { profilePhotoUrl, vehiclePhotoUrl, licensePhotoUrl, soatPhotoUrl, technicalInspectionPhotoUrl };
+};
+
+export const registerDriver = async ({ personalData, vehicle, documents }) => {
   const driverRef = doc(db, 'drivers', personalData.documentId);
   const existing = await getDoc(driverRef);
 
@@ -16,15 +34,18 @@ export const registerDriver = async ({ personalData, vehicle }) => {
     throw new Error(DRIVER_EXISTS_ERROR);
   }
 
+  const needsInspection = requiresTechnicalInspection(vehicle.year);
+  const photos = await uploadDriverPhotos(driverRef.id, { personalData, vehicle, documents }, needsInspection);
+
   await setDoc(driverRef, {
     fullName: personalData.fullName.trim(),
     documentId: personalData.documentId,
     phone: personalData.phone,
-    birthDate: personalData.birthDate.toISOString().slice(0, 10),
+    birthDate: toDateString(personalData.birthDate),
     gender: personalData.gender,
     email: personalData.email.trim().toLowerCase(),
     language: personalData.language,
-    profilePhotoUrl: personalData.profilePhoto,
+    profilePhotoUrl: photos.profilePhotoUrl,
     vehicle: {
       category: vehicle.category,
       plate: vehicle.plate.toUpperCase(),
@@ -33,8 +54,29 @@ export const registerDriver = async ({ personalData, vehicle }) => {
       year: Number(vehicle.year),
       color: vehicle.color,
       capacity: Number(vehicle.capacity),
-      photoUrl: vehicle.vehiclePhoto,
+      photoUrl: photos.vehiclePhotoUrl,
     },
+    documents: {
+      license: {
+        number: documents.licenseNumber,
+        photoUrl: photos.licensePhotoUrl,
+        expiresAt: toDateString(documents.licenseExpiry),
+      },
+      soat: {
+        photoUrl: photos.soatPhotoUrl,
+        expiresAt: toDateString(documents.soatExpiry),
+      },
+      technicalInspection: needsInspection
+        ? {
+            required: true,
+            photoUrl: photos.technicalInspectionPhotoUrl,
+            expiresAt: toDateString(documents.technicalInspectionExpiry),
+          }
+        : { required: false },
+    },
+    paymentEmail: documents.paymentEmail.trim().toLowerCase(),
+    termsAcceptedAt: serverTimestamp(),
+    commissionRate: COMMISSION_RATE,
     status: DRIVER_STATUS.PENDING,
     isAvailable: false,
     createdAt: serverTimestamp(),
@@ -42,3 +84,20 @@ export const registerDriver = async ({ personalData, vehicle }) => {
 
   return driverRef.id;
 };
+
+export const subscribeToDriver = (driverId, onChange) =>
+  onSnapshot(doc(db, 'drivers', driverId), (snapshot) =>
+    onChange(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null)
+  );
+
+export const setDriverAvailability = (driverId, isAvailable) =>
+  updateDoc(doc(db, 'drivers', driverId), {
+    isAvailable,
+    availabilityUpdatedAt: serverTimestamp(),
+  });
+
+export const updateDriverLocation = (driverId, { latitude, longitude }) =>
+  updateDoc(doc(db, 'drivers', driverId), {
+    location: { lat: latitude, lng: longitude },
+    locationUpdatedAt: serverTimestamp(),
+  });

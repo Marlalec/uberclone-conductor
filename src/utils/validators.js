@@ -1,6 +1,11 @@
+import { isAfterToday } from './dates';
+
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PLATE_REGEX = /^[A-Z]{3}[0-9]{3}$/;
+const LICENSE_REGEX = /^\d{6,10}$/;
+
+export const TECHNICAL_INSPECTION_EXEMPT_YEARS = 5;
 
 export const getAge = (birthDate) => {
   const today = new Date();
@@ -13,6 +18,19 @@ export const getAge = (birthDate) => {
 };
 
 export const isValidEmail = (email) => EMAIL_REGEX.test(email.trim());
+
+export const requiresTechnicalInspection = (year) =>
+  /^\d{4}$/.test(year) && new Date().getFullYear() - Number(year) >= TECHNICAL_INSPECTION_EXEMPT_YEARS;
+
+const getExpiryError = (date) => {
+  if (!date) {
+    return 'La fecha de vencimiento es obligatoria';
+  }
+  if (!isAfterToday(date)) {
+    return 'La fecha de vencimiento debe ser posterior a hoy';
+  }
+  return undefined;
+};
 
 export const validatePersonalData = (data) => {
   const errors = {};
@@ -116,6 +134,57 @@ export const validateVehicle = (data) => {
 
   if (!data.vehiclePhoto) {
     errors.vehiclePhoto = 'La foto del vehículo es obligatoria';
+  }
+
+  return errors;
+};
+
+export const validateDocuments = (data, vehicleYear) => {
+  const errors = {};
+
+  if (!data.licenseNumber) {
+    errors.licenseNumber = 'El número de licencia es obligatorio';
+  } else if (!LICENSE_REGEX.test(data.licenseNumber)) {
+    errors.licenseNumber = 'Debe ser numérico, entre 6 y 10 dígitos';
+  }
+
+  if (!data.licensePhoto) {
+    errors.licensePhoto = 'La foto de la licencia es obligatoria';
+  }
+
+  const licenseExpiryError = getExpiryError(data.licenseExpiry);
+  if (licenseExpiryError) {
+    errors.licenseExpiry = licenseExpiryError;
+  }
+
+  if (!data.soatPhoto) {
+    errors.soatPhoto = 'La foto del SOAT es obligatoria';
+  }
+
+  const soatExpiryError = getExpiryError(data.soatExpiry);
+  if (soatExpiryError) {
+    errors.soatExpiry = soatExpiryError;
+  }
+
+  if (requiresTechnicalInspection(vehicleYear)) {
+    if (!data.technicalInspectionPhoto) {
+      errors.technicalInspectionPhoto = 'La foto de la revisión técnico-mecánica es obligatoria';
+    }
+
+    const technicalInspectionExpiryError = getExpiryError(data.technicalInspectionExpiry);
+    if (technicalInspectionExpiryError) {
+      errors.technicalInspectionExpiry = technicalInspectionExpiryError;
+    }
+  }
+
+  if (!data.paymentEmail.trim()) {
+    errors.paymentEmail = 'El correo de Mercado Pago es obligatorio';
+  } else if (!isValidEmail(data.paymentEmail)) {
+    errors.paymentEmail = 'Ingresa un correo válido, por ejemplo nombre@dominio.com';
+  }
+
+  if (!data.termsAccepted) {
+    errors.termsAccepted = 'Debes aceptar los términos y condiciones';
   }
 
   return errors;
