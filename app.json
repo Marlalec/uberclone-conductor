@@ -21,7 +21,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "UberClone Conductor usa tu ubicación para mostrarte en el mapa y compartirla mientras estás Disponible."
+        }
+      ]
     ]
   }
 }

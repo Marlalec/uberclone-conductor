@@ -1,45 +1,22 @@
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import FormField from '../../components/FormField';
 import SelectField from '../../components/SelectField';
 import PhotoField from '../../components/PhotoField';
-import { buttonStyles, fieldStyles } from '../../components/formStyles';
+import { buttonStyles } from '../../components/formStyles';
 import { useRegister } from '../../context/RegisterContext';
 import { CATEGORIES, VEHICLE_COLORS } from '../../config/options';
-import { DRIVER_EXISTS_ERROR, registerDriver } from '../../services/driversService';
+
+export const VEHICLE_FIELDS = ['category', 'plate', 'brand', 'model', 'year', 'color', 'capacity', 'vehiclePhoto'];
 
 export default function VehicleScreen({ navigation }) {
-  const {
-    personalData,
-    vehicle,
-    vehicleErrors,
-    touched,
-    isPersonalValid,
-    isVehicleValid,
-    updateVehicle,
-    resetRegister,
-  } = useRegister();
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const { vehicle, vehicleErrors, touched, isVehicleValid, updateVehicle, touchFields } = useRegister();
 
   const errorFor = (field) => (touched[field] ? vehicleErrors[field] : undefined);
-  const canSubmit = isPersonalValid && isVehicleValid && !submitting;
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    setSubmitError('');
-    try {
-      await registerDriver({ personalData, vehicle });
-      resetRegister();
-      navigation.getParent()?.replace('Main', { screen: 'Home', params: { registered: true } });
-    } catch (error) {
-      setSubmitError(
-        error.message === DRIVER_EXISTS_ERROR
-          ? 'Ya existe un conductor registrado con ese documento'
-          : 'No se pudo enviar el registro, revisa tu conexión e intenta de nuevo'
-      );
-    } finally {
-      setSubmitting(false);
+  const handleNext = () => {
+    touchFields(VEHICLE_FIELDS);
+    if (isVehicleValid) {
+      navigation.navigate('Documents');
     }
   };
 
@@ -113,17 +90,9 @@ export default function VehicleScreen({ navigation }) {
         onChange={(value) => updateVehicle('vehiclePhoto', value)}
         error={errorFor('vehiclePhoto')}
       />
-      {!isPersonalValid ? (
-        <Text style={fieldStyles.error}>Completa correctamente la pestaña Datos personales</Text>
-      ) : null}
-      <Pressable
-        style={[buttonStyles.button, !canSubmit && buttonStyles.disabled]}
-        onPress={handleSubmit}
-        disabled={!canSubmit}
-      >
-        {submitting ? <ActivityIndicator color="#fff" /> : <Text style={buttonStyles.text}>Enviar registro</Text>}
+      <Pressable style={buttonStyles.button} onPress={handleNext}>
+        <Text style={buttonStyles.text}>Siguiente</Text>
       </Pressable>
-      {submitError ? <Text style={fieldStyles.error}>{submitError}</Text> : null}
     </ScrollView>
   );
 }
