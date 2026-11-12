@@ -6,6 +6,7 @@ import { buttonStyles, fieldStyles } from '../../components/formStyles';
 import { useDriver } from '../../context/DriverContext';
 import useDriverLocation from '../../hooks/useDriverLocation';
 import useTripRequests from '../../hooks/useTripRequests';
+import usePushNotifications from '../../hooks/usePushNotifications';
 import { DRIVER_STATUS } from '../../services/driversService';
 import { DISTANCE_MATRIX_ERROR } from '../../services/distanceMatrixService';
 import { simulateTripRequest } from '../../services/tripSimulator';
@@ -27,6 +28,7 @@ export default function HomeScreen({ navigation }) {
   const isTracking = Boolean(driver?.isAvailable) && isFocused;
   const { location, error: locationError } = useDriverLocation({ driverId, isTracking });
   const { request, error: requestError } = useTripRequests({ driverId, isAvailable: Boolean(driver?.isAvailable) });
+  usePushNotifications(driverId);
   const mapRef = useRef(null);
   const lastRequestIdRef = useRef(null);
   const [updating, setUpdating] = useState(false);

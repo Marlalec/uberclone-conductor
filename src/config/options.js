@@ -28,7 +28,23 @@ export const VEHICLE_COLORS = [
   { label: 'Otro', value: 'other' },
 ];
 
+export const optionLabel = (options, value) => options.find((option) => option.value === value)?.label ?? value;
+
+export const PAYMENT_STATUS_LABELS = {
+  approved: 'Aprobado',
+  pending: 'Pendiente',
+  rejected: 'Rechazado',
+  cash: 'Efectivo',
+};
+
+export const paymentStatusLabel = (status) => PAYMENT_STATUS_LABELS[status] ?? 'Sin cobrar';
+
+export const PAYMENT_METHOD = {
+  MERCADOPAGO: 'mercadopago',
+  CASH: 'cash',
+};
+
 export const PAYMENT_METHODS = [
-  { label: 'Mercado Pago', value: 'mercadopago' },
-  { label: 'Efectivo', value: 'cash' },
+  { label: 'Mercado Pago', value: PAYMENT_METHOD.MERCADOPAGO },
+  { label: 'Efectivo', value: PAYMENT_METHOD.CASH },
 ];

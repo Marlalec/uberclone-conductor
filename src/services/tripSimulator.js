@@ -1,4 +1,5 @@
 import { createTripRequest } from './tripsService';
+import { notifyTripRequest } from './notificationsService';
 import { PAYMENT_METHODS } from '../config/options';
 
 const METERS_PER_DEGREE = 111320;
@@ -16,12 +17,12 @@ const offsetLocation = ({ lat, lng }, minMeters, maxMeters) => {
   };
 };
 
-export const simulateTripRequest = ({ driverId, category, location }) => {
+export const simulateTripRequest = async ({ driverId, category, location }) => {
   const origin = offsetLocation(location, 300, 800);
   const destination = offsetLocation(origin, 2000, 6000);
   const paymentMethod = PAYMENT_METHODS[Math.floor(Math.random() * PAYMENT_METHODS.length)].value;
 
-  return createTripRequest({
+  const tripId = await createTripRequest({
     driverId,
     passengerId: SIMULATED_PASSENGER_ID,
     origin,
@@ -29,4 +30,8 @@ export const simulateTripRequest = ({ driverId, category, location }) => {
     category,
     paymentMethod,
   });
+
+  notifyTripRequest(tripId).catch(() => null);
+
+  return tripId;
 };

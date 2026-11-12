@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { buttonStyles, fieldStyles } from '../../components/formStyles';
 import { useDriver } from '../../context/DriverContext';
-import { CATEGORIES, PAYMENT_METHODS } from '../../config/options';
+import { CATEGORIES, PAYMENT_METHODS, optionLabel } from '../../config/options';
 import { formatCurrency } from '../../utils/format';
 import {
   REJECTION_REASON,
@@ -12,8 +12,6 @@ import {
   rejectTrip,
   subscribeToTrip,
 } from '../../services/tripsService';
-
-const labelFor = (options, value) => options.find((option) => option.value === value)?.label ?? value;
 
 const getSecondsLeft = (expiresAtMs) => Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
 
@@ -131,8 +129,8 @@ export default function TripRequestScreen({ navigation, route }) {
         <DetailRow label="Destino" value={trip.destination.address} />
         <DetailRow label="Distancia" value={`${trip.distanceKm.toLocaleString('es-CO')} km`} />
         <DetailRow label="Duración" value={`${trip.durationMin} min`} />
-        <DetailRow label="Categoría" value={labelFor(CATEGORIES, trip.category)} />
-        <DetailRow label="Método de pago" value={labelFor(PAYMENT_METHODS, trip.paymentMethod)} />
+        <DetailRow label="Categoría" value={optionLabel(CATEGORIES, trip.category)} />
+        <DetailRow label="Método de pago" value={optionLabel(PAYMENT_METHODS, trip.paymentMethod)} />
         <DetailRow label="Tarifa estimada" value={formatCurrency(trip.estimate.fare)} />
         <DetailRow label="Tu ganancia estimada" value={formatCurrency(trip.estimate.driverEarnings)} highlighted />
       </View>

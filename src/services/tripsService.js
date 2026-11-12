@@ -4,15 +4,18 @@ import {
   doc,
   limit,
   onSnapshot,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
+  Timestamp,
   where,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { getDistanceMatrix } from './distanceMatrixService';
 import { getRoute } from './directionsService';
 import { COMMISSION_RATE } from '../config/pricing';
+import { PAYMENT_METHOD } from '../config/options';
 import { calculateFare } from '../utils/calculateFare';
 
 export const TRIP_STATUS = {
@@ -26,7 +29,21 @@ export const TRIP_STATUS = {
   REJECTED: 'rejected',
 };
 
-export const ACTIVE_TRIP_STATUSES = [TRIP_STATUS.ACCEPTED, TRIP_STATUS.DRIVER_ARRIVING, TRIP_STATUS.IN_PROGRESS];
+export const ACTIVE_TRIP_STATUSES = [
+  TRIP_STATUS.ACCEPTED,
+  TRIP_STATUS.DRIVER_ARRIVING,
+  TRIP_STATUS.IN_PROGRESS,
+  TRIP_STATUS.COMPLETED,
+];
+
+export const HISTORY_TRIP_STATUSES = [TRIP_STATUS.COMPLETED, TRIP_STATUS.PAID];
+
+export const PAYMENT_STATUS = {
+  APPROVED: 'approved',
+  PENDING: 'pending',
+  REJECTED: 'rejected',
+  CASH: 'cash',
+};
 
 export const REJECTION_REASON = {
   DECLINED: 'declined',
@@ -81,6 +98,25 @@ export const subscribeToActiveTrip = (driverId, onChange) =>
     query(tripsRef, where('driverId', '==', driverId), where('status', 'in', ACTIVE_TRIP_STATUSES), limit(1)),
     (snapshot) => onChange(snapshot.empty ? null : toTrip(snapshot.docs[0]))
   );
+
+export const subscribeToTripHistory = ({ driverId, from, to, pageSize }, onChange, onError) => {
+  const constraints = [where('driverId', '==', driverId), where('status', 'in', HISTORY_TRIP_STATUSES)];
+  if (from) {
+    constraints.push(where('completedAt', '>=', Timestamp.fromDate(from)));
+  }
+  if (to) {
+    constraints.push(where('completedAt', '<=', Timestamp.fromDate(to)));
+  }
+  constraints.push(orderBy('completedAt', 'desc'));
+  if (pageSize) {
+    constraints.push(limit(pageSize));
+  }
+  return onSnapshot(
+    query(tripsRef, ...constraints),
+    (snapshot) => onChange(snapshot.docs.map(toTrip)),
+    onError
+  );
+};
 
 export const subscribeToTrip = (tripId, onChange) =>
   onSnapshot(doc(db, 'trips', tripId), (snapshot) => onChange(snapshot.exists() ? toTrip(snapshot) : null));
@@ -160,8 +196,32 @@ export const completeTrip = (tripId) =>
       fare,
       commission,
       driverEarnings,
+      rating: 3 + Math.floor(Math.random() * 3),
       completedAt: serverTimestamp(),
     };
+  });
+
+export const markCashPayment = (tripId) =>
+  runTransaction(db, async (transaction) => {
+    const tripRef = doc(db, 'trips', tripId);
+    const tripSnap = await transaction.get(tripRef);
+
+    if (!tripSnap.exists() || tripSnap.data().status !== TRIP_STATUS.COMPLETED) {
+      throw new Error(TRIP_UNAVAILABLE_ERROR);
+    }
+
+    const trip = tripSnap.data();
+    const driverRef = doc(db, 'drivers', trip.driverId);
+    const driverSnap = await transaction.get(driverRef);
+    const balance = driverSnap.data()?.balance ?? 0;
+
+    transaction.update(tripRef, {
+      status: TRIP_STATUS.PAID,
+      paymentStatus: PAYMENT_STATUS.CASH,
+      paymentMethod: PAYMENT_METHOD.CASH,
+      paidAt: serverTimestamp(),
+    });
+    transaction.update(driverRef, { balance: balance - trip.commission });
   });
 
 export const cancelTrip = (tripId) =>
