@@ -5,7 +5,11 @@ import { useIsFocused } from '@react-navigation/native';
 import { buttonStyles, fieldStyles } from '../../components/formStyles';
 import { useDriver } from '../../context/DriverContext';
 import useDriverLocation from '../../hooks/useDriverLocation';
+import useTripRequests from '../../hooks/useTripRequests';
 import { DRIVER_STATUS } from '../../services/driversService';
+import { DISTANCE_MATRIX_ERROR } from '../../services/distanceMatrixService';
+import { simulateTripRequest } from '../../services/tripSimulator';
+import { toLatLng } from '../../utils/maps';
 
 const STATUS_LABELS = {
   [DRIVER_STATUS.PENDING]: 'Pendiente de aprobación',
@@ -18,12 +22,15 @@ const MAP_DELTA = {
 };
 
 export default function HomeScreen({ navigation }) {
-  const { driver, driverId, isApproved, updateAvailability } = useDriver();
+  const { driver, driverId, activeTrip, isApproved, updateAvailability } = useDriver();
   const isFocused = useIsFocused();
   const isTracking = Boolean(driver?.isAvailable) && isFocused;
   const { location, error: locationError } = useDriverLocation({ driverId, isTracking });
+  const { request, error: requestError } = useTripRequests({ driverId, isAvailable: Boolean(driver?.isAvailable) });
   const mapRef = useRef(null);
+  const lastRequestIdRef = useRef(null);
   const [updating, setUpdating] = useState(false);
+  const [simulating, setSimulating] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -31,6 +38,19 @@ export default function HomeScreen({ navigation }) {
       mapRef.current?.animateToRegion({ ...location, ...MAP_DELTA }, 500);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (activeTrip && isFocused) {
+      navigation.navigate('Trip', { screen: 'TripInProgress', params: { tripId: activeTrip.id } });
+    }
+  }, [activeTrip, isFocused, navigation]);
+
+  useEffect(() => {
+    if (request && !activeTrip && isFocused && request.id !== lastRequestIdRef.current) {
+      lastRequestIdRef.current = request.id;
+      navigation.navigate('Trip', { screen: 'TripRequest', params: { tripId: request.id } });
+    }
+  }, [request, activeTrip, isFocused, navigation]);
 
   if (!driver) {
     return (
@@ -42,6 +62,7 @@ export default function HomeScreen({ navigation }) {
 
   const canGoAvailable = isApproved && Boolean(location);
   const switchDisabled = updating || (!driver.isAvailable && !canGoAvailable);
+  const canSimulate = driver.isAvailable && Boolean(location) && !simulating;
 
   const handleToggle = async (value) => {
     setUpdating(true);
@@ -52,6 +73,26 @@ export default function HomeScreen({ navigation }) {
       setError('No se pudo actualizar tu disponibilidad, intenta de nuevo');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSimulate = async () => {
+    setSimulating(true);
+    setError('');
+    try {
+      await simulateTripRequest({
+        driverId,
+        category: driver.vehicle.category,
+        location: toLatLng(location),
+      });
+    } catch (simulateError) {
+      setError(
+        simulateError.message === DISTANCE_MATRIX_ERROR
+          ? 'No se pudo calcular la distancia con Google Distance Matrix, revisa la API key'
+          : 'No se pudo crear la solicitud simulada, intenta de nuevo'
+      );
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -86,9 +127,18 @@ export default function HomeScreen({ navigation }) {
         ) : null}
         {isTracking ? <Text style={styles.hint}>Compartiendo tu ubicación en tiempo real</Text> : null}
         {locationError ? <Text style={fieldStyles.error}>{locationError}</Text> : null}
+        {requestError ? <Text style={fieldStyles.error}>{requestError}</Text> : null}
         {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
-        <Pressable style={buttonStyles.button} onPress={() => navigation.navigate('Trip')}>
-          <Text style={buttonStyles.text}>Simular solicitud</Text>
+        <Pressable
+          style={[buttonStyles.button, !canSimulate && buttonStyles.disabled]}
+          onPress={handleSimulate}
+          disabled={!canSimulate}
+        >
+          {simulating ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={buttonStyles.text}>Simular solicitud de pasajero</Text>
+          )}
         </Pressable>
       </View>
     </View>

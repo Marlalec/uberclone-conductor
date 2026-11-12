@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { DRIVER_STATUS, setDriverAvailability, subscribeToDriver } from '../services/driversService';
+import { subscribeToActiveTrip } from '../services/tripsService';
 import {
   clearSession,
   getSession,
@@ -13,6 +14,7 @@ const DriverContext = createContext(null);
 export function DriverProvider({ children }) {
   const [driverId, setDriverId] = useState(null);
   const [driver, setDriver] = useState(null);
+  const [activeTrip, setActiveTrip] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
 
   const isApproved = driver?.status === DRIVER_STATUS.APPROVED;
@@ -42,6 +44,14 @@ export function DriverProvider({ children }) {
       }
     });
   }, [driverId, endSession]);
+
+  useEffect(() => {
+    if (!driverId) {
+      return undefined;
+    }
+
+    return subscribeToActiveTrip(driverId, setActiveTrip);
+  }, [driverId]);
 
   useEffect(() => {
     if (driver?.isAvailable && !isApproved) {
@@ -76,6 +86,7 @@ export function DriverProvider({ children }) {
   const value = {
     driverId,
     driver,
+    activeTrip: driverId ? activeTrip : null,
     isApproved,
     loadingSession,
     startSession,

@@ -27,3 +27,8 @@ export const VEHICLE_COLORS = [
   { label: 'Amarillo', value: 'yellow' },
   { label: 'Otro', value: 'other' },
 ];
+
+export const PAYMENT_METHODS = [
+  { label: 'Mercado Pago', value: 'mercadopago' },
+  { label: 'Efectivo', value: 'cash' },
+];
