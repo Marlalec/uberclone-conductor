@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { colors, radius } from '../theme';
 
 export const fieldStyles = StyleSheet.create({
   container: {
@@ -8,51 +9,54 @@ export const fieldStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
-    color: '#222',
+    color: colors.text,
   },
   input: {
-    minHeight: 48,
+    minHeight: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
     justifyContent: 'center',
     fontSize: 16,
-    color: '#000',
-    backgroundColor: '#fff',
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   inputError: {
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
   value: {
     fontSize: 16,
-    color: '#000',
+    color: colors.text,
   },
   placeholder: {
     fontSize: 16,
-    color: '#999',
+    color: colors.placeholder,
   },
   error: {
     marginTop: 4,
     fontSize: 13,
-    color: '#d32f2f',
+    color: colors.danger,
   },
 });
 
 export const buttonStyles = StyleSheet.create({
   button: {
-    backgroundColor: '#000',
+    minHeight: 52,
+    backgroundColor: colors.ink,
     paddingVertical: 14,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    borderRadius: radius.md,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 8,
   },
   disabled: {
-    backgroundColor: '#999',
+    backgroundColor: colors.placeholder,
   },
   text: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

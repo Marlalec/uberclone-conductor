@@ -96,6 +96,16 @@ export const setDriverAvailability = (driverId, isAvailable) =>
     availabilityUpdatedAt: serverTimestamp(),
   });
 
+export const updateDriverFcmToken = (driverId, fcmToken) =>
+  updateDoc(doc(db, 'drivers', driverId), { fcmToken });
+
+export const updateDriverProfile = (driverId, { phone, email, language }) =>
+  updateDoc(doc(db, 'drivers', driverId), {
+    phone,
+    email: email.trim().toLowerCase(),
+    language,
+  });
+
 export const updateDriverLocation = (driverId, { latitude, longitude }) =>
   updateDoc(doc(db, 'drivers', driverId), {
     location: { lat: latitude, lng: longitude },

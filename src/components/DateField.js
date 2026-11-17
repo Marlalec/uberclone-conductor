@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { buttonStyles, fieldStyles } from './formStyles';
+import { useLanguage } from '../context/LanguageContext';
+import { colors, radius } from '../theme';
 
 const DEFAULT_DATE = new Date(2000, 0, 1);
 
-const formatDate = (date) => date.toLocaleDateString('es-CO');
-
 export default function DateField({ label, value, onChange, error, maximumDate, minimumDate }) {
+  const { t, locale } = useLanguage();
   const initialDate = value ?? minimumDate ?? DEFAULT_DATE;
   const [visible, setVisible] = useState(false);
   const [tempDate, setTempDate] = useState(initialDate);
@@ -31,13 +32,13 @@ export default function DateField({ label, value, onChange, error, maximumDate, 
 
   return (
     <View style={fieldStyles.container}>
-      <Text style={fieldStyles.label}>{label}</Text>
+      <Text style={fieldStyles.label}>{t(label)}</Text>
       <Pressable style={[fieldStyles.input, error && fieldStyles.inputError]} onPress={open}>
         <Text style={value ? fieldStyles.value : fieldStyles.placeholder}>
-          {value ? formatDate(value) : 'Selecciona una fecha'}
+          {value ? value.toLocaleDateString(locale) : t('common.selectDate')}
         </Text>
       </Pressable>
-      {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
+      {error ? <Text style={fieldStyles.error}>{t(error)}</Text> : null}
       {visible && Platform.OS === 'android' ? (
         <DateTimePicker
           value={tempDate}
@@ -61,7 +62,7 @@ export default function DateField({ label, value, onChange, error, maximumDate, 
                 onChange={(event, date) => date && setTempDate(date)}
               />
               <Pressable style={buttonStyles.button} onPress={confirmIos}>
-                <Text style={buttonStyles.text}>Listo</Text>
+                <Text style={buttonStyles.text}>{t('common.done')}</Text>
               </Pressable>
             </View>
           </View>
@@ -74,14 +75,14 @@ export default function DateField({ label, value, onChange, error, maximumDate, 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 16,
     paddingBottom: 32,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
   },
 });

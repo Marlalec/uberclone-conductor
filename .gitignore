@@ -43,3 +43,7 @@ yarn-error.*
 
 # local tools
 .claude/
+serviceAccountKey.json
+google-services.json
+
+backend/mp-test-accounts.txt
