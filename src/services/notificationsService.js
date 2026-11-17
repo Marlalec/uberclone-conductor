@@ -1,8 +1,14 @@
-import { PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform, TurboModuleRegistry } from 'react-native';
 import { updateDriverFcmToken } from './driversService';
 import { request } from './backendClient';
 
+const NATIVE_FIREBASE_MODULE = 'NativeRNFBTurboApp';
+
 const loadMessaging = () => {
+  if (!TurboModuleRegistry.get(NATIVE_FIREBASE_MODULE)) {
+    return null;
+  }
+
   try {
     return require('@react-native-firebase/messaging').default;
   } catch {

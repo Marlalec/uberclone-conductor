@@ -1,23 +1,18 @@
-import { fetchGoogleMaps, metersToKm, secondsToMinutes, toLatLngParam } from './googleMapsClient';
+import { fetchRouting, metersToKm, secondsToMinutes } from './routingClient';
 
 export const DIRECTIONS_ERROR = 'DIRECTIONS_FAILED';
 
 export const getRoute = async (origin, destination) => {
-  const data = await fetchGoogleMaps('directions', {
-    origin: toLatLngParam(origin),
-    destination: toLatLngParam(destination),
-    mode: 'driving',
-  });
+  const data = await fetchRouting('route', origin, destination, 'overview=full&geometries=polyline');
   const route = data.routes?.[0];
-  const leg = route?.legs?.[0];
 
-  if (data.status !== 'OK' || !leg) {
+  if (data.code !== 'Ok' || !route?.geometry) {
     throw new Error(DIRECTIONS_ERROR);
   }
 
   return {
-    polyline: route.overview_polyline.points,
-    distanceKm: metersToKm(leg.distance.value),
-    durationMin: secondsToMinutes(leg.duration.value),
+    polyline: route.geometry,
+    distanceKm: metersToKm(route.distance),
+    durationMin: secondsToMinutes(route.duration),
   };
 };

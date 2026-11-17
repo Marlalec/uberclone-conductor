@@ -1,4 +1,4 @@
-import { createTripRequest } from './tripsService';
+import { MAX_RATING, MIN_RATING, createTripRequest, rateTrip } from './tripsService';
 import { notifyTripRequest } from './notificationsService';
 import { PAYMENT_METHODS } from '../config/options';
 
@@ -35,3 +35,6 @@ export const simulateTripRequest = async ({ driverId, category, location }) => {
 
   return tripId;
 };
+
+export const simulatePassengerRating = (tripId) =>
+  rateTrip(tripId, Math.floor(randomBetween(MIN_RATING, MAX_RATING + 1)));

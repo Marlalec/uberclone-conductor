@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { subscribeToTripHistory } from '../services/tripsService';
 
-const SUBSCRIPTION_ERROR = 'No se pudo cargar el historial, revisa tu conexión';
-const INDEX_ERROR = 'Firestore necesita un índice para esta consulta, abre el enlace que aparece en la consola de Expo';
+const SUBSCRIPTION_ERROR = 'errors.historyLoad';
+const INDEX_ERROR = 'errors.firestoreIndex';
 
 export default function useTripHistory({ driverId, from, to, pageSize, enabled = true }) {
   const [trips, setTrips] = useState([]);

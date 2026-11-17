@@ -10,9 +10,9 @@ const TRACKING_OPTIONS = {
   distanceInterval: 5,
 };
 
-const PERMISSION_ERROR = 'Debes permitir el acceso a tu ubicación para usar el mapa';
-const LOCATION_ERROR = 'No se pudo obtener tu ubicación, revisa que el GPS esté activo';
-const SYNC_ERROR = 'No se pudo enviar tu ubicación, revisa tu conexión';
+const PERMISSION_ERROR = 'errors.locationPermission';
+const LOCATION_ERROR = 'errors.locationUnavailable';
+const SYNC_ERROR = 'errors.locationSync';
 
 const toCoords = ({ coords }) => ({
   latitude: coords.latitude,

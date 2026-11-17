@@ -20,7 +20,7 @@ export const startOfWeek = (date) => {
 
 export const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
-export const formatDateTime = (date) =>
-  `${date.toLocaleDateString('es-CO')} ${date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+export const formatDateTime = (date, locale) =>
+  `${date.toLocaleDateString(locale)} ${date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
 
 export const toDateString = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;

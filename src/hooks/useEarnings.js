@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { subscribeToTripHistory } from '../services/tripsService';
 import { buildEarningsSummaries, earningsQueryStart } from '../utils/earnings';
 
-const SUBSCRIPTION_ERROR = 'No se pudieron cargar las ganancias, revisa tu conexión';
-const INDEX_ERROR = 'Firestore necesita un índice para esta consulta, abre el enlace que aparece en la consola de Expo';
+const SUBSCRIPTION_ERROR = 'errors.earningsLoad';
+const INDEX_ERROR = 'errors.firestoreIndex';
 
 export default function useEarnings(driverId) {
   const [trips, setTrips] = useState([]);

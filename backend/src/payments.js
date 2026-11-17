@@ -1,3 +1,5 @@
+export const CURRENCY_ID = 'COP';
+
 export const PAYMENT_STATUS = {
   APPROVED: 'approved',
   PENDING: 'pending',
@@ -36,7 +38,7 @@ export const buildPreferencePayload = ({ tripId, trip, publicUrl }) => {
         title: 'Viaje UberClone — Conductor',
         quantity: 1,
         unit_price: trip.fare,
-        currency_id: 'COP',
+        currency_id: CURRENCY_ID,
       },
     ],
     external_reference: tripId,
@@ -54,3 +56,6 @@ export const buildPreferencePayload = ({ tripId, trip, publicUrl }) => {
 
   return payload;
 };
+
+export const matchesTripFare = (payment, trip) =>
+  Number(payment.transaction_amount) === trip.fare && payment.currency_id === CURRENCY_ID;

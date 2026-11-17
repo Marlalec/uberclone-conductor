@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { REJECTION_REASON, rejectTrip, subscribeToTripRequests } from '../services/tripsService';
 
-const SUBSCRIPTION_ERROR = 'No se pudieron recibir solicitudes, revisa tu conexión';
+const SUBSCRIPTION_ERROR = 'errors.requestsSubscription';
 
 export default function useTripRequests({ driverId, isAvailable }) {
   const [request, setRequest] = useState(null);

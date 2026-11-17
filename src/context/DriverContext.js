@@ -1,17 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { DRIVER_STATUS, setDriverAvailability, subscribeToDriver } from '../services/driversService';
 import { subscribeToActiveTrip } from '../services/tripsService';
-import {
-  clearSession,
-  getSession,
-  saveLanguage,
-  saveLastAvailability,
-  saveSession,
-} from '../services/storageService';
+import { clearSession, getSession, saveLastAvailability, saveSession } from '../services/storageService';
+import { useLanguage } from './LanguageContext';
 
 const DriverContext = createContext(null);
 
 export function DriverProvider({ children }) {
+  const { changeLanguage } = useLanguage();
   const [driverId, setDriverId] = useState(null);
   const [driver, setDriver] = useState(null);
   const [activeTrip, setActiveTrip] = useState(null);
@@ -54,16 +50,25 @@ export function DriverProvider({ children }) {
   }, [driverId]);
 
   useEffect(() => {
+    if (driver?.language) {
+      changeLanguage(driver.language);
+    }
+  }, [driver?.language, changeLanguage]);
+
+  useEffect(() => {
     if (driver?.isAvailable && !isApproved) {
       setDriverAvailability(driverId, false);
       saveLastAvailability(false);
     }
   }, [driver, driverId, isApproved]);
 
-  const startSession = useCallback(async (id, language) => {
-    await Promise.all([saveSession(id), saveLanguage(language)]);
-    setDriverId(id);
-  }, []);
+  const startSession = useCallback(
+    async (id, language) => {
+      await Promise.all([saveSession(id), changeLanguage(language)]);
+      setDriverId(id);
+    },
+    [changeLanguage]
+  );
 
   const updateAvailability = useCallback(
     async (isAvailable) => {

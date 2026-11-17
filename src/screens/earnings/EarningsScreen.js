@@ -3,19 +3,23 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import FilterChips from '../../components/FilterChips';
 import { fieldStyles } from '../../components/formStyles';
 import { useDriver } from '../../context/DriverContext';
+import { useLanguage } from '../../context/LanguageContext';
 import useEarnings from '../../hooks/useEarnings';
 import { formatCurrency } from '../../utils/format';
+import { colors, radius } from '../../theme';
 
 const PERIODS = [
-  { label: 'Hoy', value: 'today' },
-  { label: 'Semana', value: 'week' },
-  { label: 'Mes', value: 'month' },
+  { label: 'periods.today', value: 'today' },
+  { label: 'periods.week', value: 'week' },
+  { label: 'periods.month', value: 'month' },
 ];
 
 function SummaryRow({ label, value, highlighted }) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryLabel}>{t(label)}</Text>
       <Text style={[styles.summaryValue, highlighted && styles.highlighted]}>{value}</Text>
     </View>
   );
@@ -23,6 +27,7 @@ function SummaryRow({ label, value, highlighted }) {
 
 export default function EarningsScreen() {
   const { driver, driverId } = useDriver();
+  const { t } = useLanguage();
   const { summaries, error } = useEarnings(driverId);
   const [period, setPeriod] = useState('today');
 
@@ -32,22 +37,22 @@ export default function EarningsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Saldo del conductor</Text>
+        <Text style={styles.balanceLabel}>{t('earnings.balance')}</Text>
         <Text style={[styles.balanceValue, balance < 0 && styles.balanceNegative]}>{formatCurrency(balance)}</Text>
         <Text style={styles.balanceHint}>
-          Ganancias de viajes pagados por la pasarela menos comisiones de los viajes en efectivo
+          {t('earnings.balanceHint')}
         </Text>
       </View>
       <FilterChips options={PERIODS} value={period} onChange={setPeriod} />
       <View style={styles.card}>
-        <SummaryRow label="Viajes pagados" value={String(summary.trips)} />
-        <SummaryRow label="Total facturado" value={formatCurrency(summary.totalFare)} />
-        <SummaryRow label="Comisiones" value={`- ${formatCurrency(summary.totalCommission)}`} />
-        <SummaryRow label="Propinas" value={formatCurrency(summary.totalTips)} />
-        <SummaryRow label="Ganancia neta" value={formatCurrency(summary.totalEarnings)} highlighted />
-        <SummaryRow label="Promedio por viaje" value={formatCurrency(summary.averagePerTrip)} />
+        <SummaryRow label="earnings.paidTrips" value={String(summary.trips)} />
+        <SummaryRow label="earnings.totalFare" value={formatCurrency(summary.totalFare)} />
+        <SummaryRow label="earnings.commissions" value={`- ${formatCurrency(summary.totalCommission)}`} />
+        <SummaryRow label="earnings.tips" value={formatCurrency(summary.totalTips)} />
+        <SummaryRow label="trip.netEarnings" value={formatCurrency(summary.totalEarnings)} highlighted />
+        <SummaryRow label="earnings.average" value={formatCurrency(summary.averagePerTrip)} />
       </View>
-      {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
+      {error ? <Text style={fieldStyles.error}>{t(error)}</Text> : null}
     </ScrollView>
   );
 }
@@ -56,37 +61,38 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     gap: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     flexGrow: 1,
   },
   balanceCard: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radius.lg,
+    padding: 20,
     gap: 4,
-    backgroundColor: '#000',
+    backgroundColor: colors.ink,
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#ccc',
+    color: colors.onInkMuted,
   },
   balanceValue: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.surface,
   },
   balanceNegative: {
-    color: '#ff8a80',
+    color: '#FF9B8F',
   },
   balanceHint: {
     fontSize: 12,
-    color: '#aaa',
+    color: colors.onInkMuted,
   },
   card: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
     padding: 16,
     gap: 14,
+    backgroundColor: colors.surface,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -96,14 +102,15 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 15,
-    color: '#555',
+    color: colors.textMuted,
   },
   summaryValue: {
     fontSize: 15,
-    color: '#000',
+    color: colors.ink,
   },
   highlighted: {
     fontSize: 17,
     fontWeight: '700',
+    color: colors.ink,
   },
 });

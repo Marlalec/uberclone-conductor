@@ -1,23 +1,23 @@
-import { fetchGoogleMaps, metersToKm, secondsToMinutes, toLatLngParam } from './googleMapsClient';
+import { fetchRouting, metersToKm, secondsToMinutes } from './routingClient';
 
 export const DISTANCE_MATRIX_ERROR = 'DISTANCE_MATRIX_FAILED';
 
 export const getDistanceMatrix = async (origin, destination) => {
-  const data = await fetchGoogleMaps('distancematrix', {
-    origins: toLatLngParam(origin),
-    destinations: toLatLngParam(destination),
-    mode: 'driving',
-  });
-  const element = data.rows?.[0]?.elements?.[0];
+  const data = await fetchRouting(
+    'table',
+    origin,
+    destination,
+    'sources=0&destinations=1&annotations=distance,duration'
+  );
+  const distance = data.distances?.[0]?.[0];
+  const duration = data.durations?.[0]?.[0];
 
-  if (data.status !== 'OK' || element?.status !== 'OK') {
+  if (data.code !== 'Ok' || distance == null || duration == null) {
     throw new Error(DISTANCE_MATRIX_ERROR);
   }
 
   return {
-    distanceKm: metersToKm(element.distance.value),
-    durationMin: secondsToMinutes(element.duration.value),
-    originAddress: data.origin_addresses[0],
-    destinationAddress: data.destination_addresses[0],
+    distanceKm: metersToKm(distance),
+    durationMin: secondsToMinutes(duration),
   };
 };

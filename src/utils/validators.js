@@ -24,10 +24,10 @@ export const requiresTechnicalInspection = (year) =>
 
 const getExpiryError = (date) => {
   if (!date) {
-    return 'La fecha de vencimiento es obligatoria';
+    return 'validation.expiryRequired';
   }
   if (!isAfterToday(date)) {
-    return 'La fecha de vencimiento debe ser posterior a hoy';
+    return 'validation.expiryFuture';
   }
   return undefined;
 };
@@ -37,47 +37,47 @@ export const validatePersonalData = (data) => {
   const fullName = data.fullName.trim();
 
   if (!data.profilePhoto) {
-    errors.profilePhoto = 'La foto de perfil es obligatoria';
+    errors.profilePhoto = 'validation.profilePhotoRequired';
   }
 
   if (!fullName) {
-    errors.fullName = 'El nombre completo es obligatorio';
+    errors.fullName = 'validation.fullNameRequired';
   } else if (fullName.length > 50) {
-    errors.fullName = 'Máximo 50 caracteres';
+    errors.fullName = 'validation.max50';
   } else if (!NAME_REGEX.test(fullName)) {
-    errors.fullName = 'Solo se permiten letras y espacios';
+    errors.fullName = 'validation.lettersOnly';
   }
 
   if (!data.documentId) {
-    errors.documentId = 'El documento de identidad es obligatorio';
+    errors.documentId = 'validation.documentRequired';
   } else if (!/^\d{6,10}$/.test(data.documentId)) {
-    errors.documentId = 'Debe ser numérico, entre 6 y 10 dígitos';
+    errors.documentId = 'validation.digits6to10';
   }
 
   if (!data.phone) {
-    errors.phone = 'El número de celular es obligatorio';
+    errors.phone = 'validation.phoneRequired';
   } else if (!/^\d{10}$/.test(data.phone)) {
-    errors.phone = 'Debe ser numérico de 10 dígitos';
+    errors.phone = 'validation.phoneDigits';
   }
 
   if (!data.birthDate) {
-    errors.birthDate = 'La fecha de nacimiento es obligatoria';
+    errors.birthDate = 'validation.birthDateRequired';
   } else if (getAge(data.birthDate) < 18) {
-    errors.birthDate = 'Debes ser mayor de 18 años';
+    errors.birthDate = 'validation.adultOnly';
   }
 
   if (!data.gender) {
-    errors.gender = 'Selecciona un género';
+    errors.gender = 'validation.genderRequired';
   }
 
   if (!data.email.trim()) {
-    errors.email = 'El correo electrónico es obligatorio';
+    errors.email = 'validation.emailRequired';
   } else if (!isValidEmail(data.email)) {
-    errors.email = 'Ingresa un correo válido, por ejemplo nombre@dominio.com';
+    errors.email = 'validation.emailInvalid';
   }
 
   if (!data.language) {
-    errors.language = 'Selecciona un idioma';
+    errors.language = 'validation.languageRequired';
   }
 
   return errors;
@@ -91,49 +91,49 @@ export const validateVehicle = (data) => {
   const model = data.model.trim();
 
   if (!data.category) {
-    errors.category = 'Selecciona una categoría';
+    errors.category = 'validation.categoryRequired';
   }
 
   if (!plate) {
-    errors.plate = 'La placa es obligatoria';
+    errors.plate = 'validation.plateRequired';
   } else if (!PLATE_REGEX.test(plate)) {
-    errors.plate = 'Formato inválido, debe ser como ABC123';
+    errors.plate = 'validation.plateFormat';
   }
 
   if (!brand) {
-    errors.brand = 'La marca es obligatoria';
+    errors.brand = 'validation.brandRequired';
   } else if (brand.length > 30) {
-    errors.brand = 'Máximo 30 caracteres';
+    errors.brand = 'validation.max30';
   }
 
   if (!model) {
-    errors.model = 'El modelo es obligatorio';
+    errors.model = 'validation.modelRequired';
   } else if (model.length > 30) {
-    errors.model = 'Máximo 30 caracteres';
+    errors.model = 'validation.max30';
   }
 
   if (!data.year) {
-    errors.year = 'El año es obligatorio';
+    errors.year = 'validation.yearRequired';
   } else if (!/^\d{4}$/.test(data.year)) {
-    errors.year = 'Debe tener 4 dígitos';
+    errors.year = 'validation.yearDigits';
   } else if (Number(data.year) > currentYear) {
-    errors.year = `No puede ser mayor a ${currentYear}`;
+    errors.year = { key: 'validation.yearMax', params: { year: currentYear } };
   }
 
   if (!data.color) {
-    errors.color = 'Selecciona un color';
+    errors.color = 'validation.colorRequired';
   }
 
   if (!data.capacity) {
-    errors.capacity = 'La capacidad es obligatoria';
+    errors.capacity = 'validation.capacityRequired';
   } else if (!/^\d+$/.test(data.capacity) || Number(data.capacity) < 1) {
-    errors.capacity = 'Debe ser un número mayor a 0';
+    errors.capacity = 'validation.capacityPositive';
   } else if (data.category === 'xl' && Number(data.capacity) < 6) {
-    errors.capacity = 'La categoría XL exige mínimo 6 pasajeros';
+    errors.capacity = 'validation.capacityXl';
   }
 
   if (!data.vehiclePhoto) {
-    errors.vehiclePhoto = 'La foto del vehículo es obligatoria';
+    errors.vehiclePhoto = 'validation.vehiclePhotoRequired';
   }
 
   return errors;
@@ -143,13 +143,13 @@ export const validateDocuments = (data, vehicleYear) => {
   const errors = {};
 
   if (!data.licenseNumber) {
-    errors.licenseNumber = 'El número de licencia es obligatorio';
+    errors.licenseNumber = 'validation.licenseRequired';
   } else if (!LICENSE_REGEX.test(data.licenseNumber)) {
-    errors.licenseNumber = 'Debe ser numérico, entre 6 y 10 dígitos';
+    errors.licenseNumber = 'validation.digits6to10';
   }
 
   if (!data.licensePhoto) {
-    errors.licensePhoto = 'La foto de la licencia es obligatoria';
+    errors.licensePhoto = 'validation.licensePhotoRequired';
   }
 
   const licenseExpiryError = getExpiryError(data.licenseExpiry);
@@ -158,7 +158,7 @@ export const validateDocuments = (data, vehicleYear) => {
   }
 
   if (!data.soatPhoto) {
-    errors.soatPhoto = 'La foto del SOAT es obligatoria';
+    errors.soatPhoto = 'validation.soatPhotoRequired';
   }
 
   const soatExpiryError = getExpiryError(data.soatExpiry);
@@ -168,7 +168,7 @@ export const validateDocuments = (data, vehicleYear) => {
 
   if (requiresTechnicalInspection(vehicleYear)) {
     if (!data.technicalInspectionPhoto) {
-      errors.technicalInspectionPhoto = 'La foto de la revisión técnico-mecánica es obligatoria';
+      errors.technicalInspectionPhoto = 'validation.inspectionPhotoRequired';
     }
 
     const technicalInspectionExpiryError = getExpiryError(data.technicalInspectionExpiry);
@@ -178,13 +178,13 @@ export const validateDocuments = (data, vehicleYear) => {
   }
 
   if (!data.paymentEmail.trim()) {
-    errors.paymentEmail = 'El correo de Mercado Pago es obligatorio';
+    errors.paymentEmail = 'validation.paymentEmailRequired';
   } else if (!isValidEmail(data.paymentEmail)) {
-    errors.paymentEmail = 'Ingresa un correo válido, por ejemplo nombre@dominio.com';
+    errors.paymentEmail = 'validation.emailInvalid';
   }
 
   if (!data.termsAccepted) {
-    errors.termsAccepted = 'Debes aceptar los términos y condiciones';
+    errors.termsAccepted = 'validation.termsRequired';
   }
 
   return errors;

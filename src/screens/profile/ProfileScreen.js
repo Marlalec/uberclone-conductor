@@ -5,25 +5,30 @@ import SelectField from '../../components/SelectField';
 import { buttonStyles, fieldStyles } from '../../components/formStyles';
 import { CATEGORIES, LANGUAGES, VEHICLE_COLORS, optionLabel } from '../../config/options';
 import { useDriver } from '../../context/DriverContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { updateDriverProfile } from '../../services/driversService';
-import { saveLanguage } from '../../services/storageService';
 import { isValidEmail } from '../../utils/validators';
+import { colors, radius } from '../../theme';
 
 const PHONE_REGEX = /^\d{10}$/;
 
 function Section({ title, children }) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTitle}>{t(title)}</Text>
       {children}
     </View>
   );
 }
 
 function InfoRow({ label, value }) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoLabel}>{t(label)}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
@@ -31,6 +36,7 @@ function InfoRow({ label, value }) {
 
 export default function ProfileScreen() {
   const { driver, driverId, logout } = useDriver();
+  const { t, changeLanguage } = useLanguage();
   const [form, setForm] = useState({ phone: '', email: '', language: 'es' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -45,7 +51,7 @@ export default function ProfileScreen() {
   if (!driver) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
@@ -58,10 +64,10 @@ export default function ProfileScreen() {
   const validate = () => {
     const nextErrors = {};
     if (!PHONE_REGEX.test(form.phone)) {
-      nextErrors.phone = 'Debe ser numérico de 10 dígitos';
+      nextErrors.phone = 'validation.phoneDigits';
     }
     if (!isValidEmail(form.email)) {
-      nextErrors.email = 'Ingresa un correo válido, por ejemplo nombre@dominio.com';
+      nextErrors.email = 'validation.emailInvalid';
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -75,10 +81,10 @@ export default function ProfileScreen() {
     setMessage('');
     try {
       await updateDriverProfile(driverId, form);
-      await saveLanguage(form.language);
-      setMessage('Datos actualizados');
+      await changeLanguage(form.language);
+      setMessage('profile.saved');
     } catch {
-      setErrors({ submit: 'No se pudieron guardar los cambios, intenta de nuevo' });
+      setErrors({ submit: 'profile.errors.save' });
     } finally {
       setSaving(false);
     }
@@ -89,11 +95,11 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Section title="Datos personales">
-        <InfoRow label="Nombre" value={driver.fullName} />
-        <InfoRow label="Documento" value={driver.documentId} />
+      <Section title="profile.personalSection">
+        <InfoRow label="profile.name" value={driver.fullName} />
+        <InfoRow label="profile.document" value={driver.documentId} />
         <FormField
-          label="Número de celular"
+          label="register.phone"
           keyboardType="phone-pad"
           value={form.phone}
           onChangeText={(value) => updateForm('phone', value)}
@@ -101,7 +107,7 @@ export default function ProfileScreen() {
           error={errors.phone}
         />
         <FormField
-          label="Correo electrónico"
+          label="register.email"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -110,7 +116,7 @@ export default function ProfileScreen() {
           error={errors.email}
         />
         <SelectField
-          label="Idioma"
+          label="register.language"
           options={LANGUAGES}
           value={form.language}
           onChange={(value) => updateForm('language', value)}
@@ -120,30 +126,40 @@ export default function ProfileScreen() {
           onPress={handleSave}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={buttonStyles.text}>Guardar cambios</Text>}
+          {saving ? <ActivityIndicator color={colors.surface} /> : <Text style={buttonStyles.text}>{t('profile.save')}</Text>}
         </Pressable>
-        {message ? <Text style={styles.success}>{message}</Text> : null}
-        {errors.submit ? <Text style={fieldStyles.error}>{errors.submit}</Text> : null}
+        {message ? <Text style={styles.success}>{t(message)}</Text> : null}
+        {errors.submit ? <Text style={fieldStyles.error}>{t(errors.submit)}</Text> : null}
       </Section>
-      <Section title="Vehículo">
-        <InfoRow label="Categoría" value={optionLabel(CATEGORIES, driver.vehicle.category)} />
-        <InfoRow label="Placa" value={driver.vehicle.plate} />
-        <InfoRow label="Marca y modelo" value={`${driver.vehicle.brand} ${driver.vehicle.model}`} />
-        <InfoRow label="Año" value={String(driver.vehicle.year)} />
-        <InfoRow label="Color" value={optionLabel(VEHICLE_COLORS, driver.vehicle.color)} />
-        <InfoRow label="Capacidad" value={`${driver.vehicle.capacity} pasajeros`} />
+      <Section title="profile.vehicleSection">
+        <InfoRow label="register.category" value={t(optionLabel(CATEGORIES, driver.vehicle.category))} />
+        <InfoRow label="register.plate" value={driver.vehicle.plate} />
+        <InfoRow label="profile.brandModel" value={`${driver.vehicle.brand} ${driver.vehicle.model}`} />
+        <InfoRow label="register.year" value={String(driver.vehicle.year)} />
+        <InfoRow label="register.color" value={t(optionLabel(VEHICLE_COLORS, driver.vehicle.color))} />
+        <InfoRow label="profile.capacity" value={t('profile.passengers', { count: driver.vehicle.capacity })} />
       </Section>
-      <Section title="Documentos">
-        <InfoRow label="Licencia" value={documents?.license ? `${documents.license.number} · vence ${documents.license.expiresAt}` : 'Sin registrar'} />
-        <InfoRow label="SOAT" value={documents?.soat ? `Vence ${documents.soat.expiresAt}` : 'Sin registrar'} />
+      <Section title="profile.documentsSection">
         <InfoRow
-          label="Revisión técnico-mecánica"
-          value={inspection?.required ? `Vence ${inspection.expiresAt}` : 'No aplica por el año del vehículo'}
+          label="profile.license"
+          value={
+            documents?.license
+              ? t('profile.licenseValue', { number: documents.license.number, date: documents.license.expiresAt })
+              : t('common.notRegistered')
+          }
         />
-        <InfoRow label="Correo de Mercado Pago" value={driver.paymentEmail ?? 'Sin registrar'} />
+        <InfoRow
+          label="SOAT"
+          value={documents?.soat ? t('profile.expires', { date: documents.soat.expiresAt }) : t('common.notRegistered')}
+        />
+        <InfoRow
+          label="register.inspectionSection"
+          value={inspection?.required ? t('profile.expires', { date: inspection.expiresAt }) : t('profile.inspectionNotRequired')}
+        />
+        <InfoRow label="profile.paymentEmail" value={driver.paymentEmail ?? t('common.notRegistered')} />
       </Section>
       <Pressable style={[buttonStyles.button, styles.logout]} onPress={logout}>
-        <Text style={[buttonStyles.text, styles.logoutText]}>Cerrar sesión</Text>
+        <Text style={[buttonStyles.text, styles.logoutText]}>{t('profile.logout')}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -154,7 +170,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
     gap: 20,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     flexGrow: 1,
   },
   centered: {
@@ -163,32 +179,38 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 12,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: 16,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
+    color: colors.text,
   },
   infoRow: {
     gap: 2,
   },
   infoLabel: {
     fontSize: 13,
-    color: '#555',
+    color: colors.textMuted,
   },
   infoValue: {
     fontSize: 16,
-    color: '#000',
+    color: colors.ink,
   },
   success: {
     fontSize: 14,
-    color: '#2e7d32',
+    color: colors.success,
   },
   logout: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
   logoutText: {
-    color: '#d32f2f',
+    color: colors.danger,
   },
 });

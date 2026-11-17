@@ -6,16 +6,20 @@ import DrawerNavigator from './DrawerNavigator';
 import TripStack from './TripStack';
 import TripDetailScreen from '../screens/history/TripDetailScreen';
 import { useDriver } from '../context/DriverContext';
+import { useLanguage } from '../context/LanguageContext';
+import { colors } from '../theme';
+import { headerOptions } from './screenOptions';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { driverId, loadingSession } = useDriver();
+  const { t } = useLanguage();
 
   if (loadingSession) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
@@ -30,7 +34,7 @@ export default function AppNavigator() {
             <Stack.Screen
               name="TripDetail"
               component={TripDetailScreen}
-              options={{ headerShown: true, title: 'Detalle del viaje' }}
+              options={{ ...headerOptions, headerShown: true, title: t('nav.tripDetail') }}
             />
           </>
         ) : (
@@ -46,6 +50,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
 });

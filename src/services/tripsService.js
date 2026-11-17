@@ -14,6 +14,7 @@ import {
 import { db } from './firebase';
 import { getDistanceMatrix } from './distanceMatrixService';
 import { getRoute } from './directionsService';
+import { getAddress } from './addressService';
 import { COMMISSION_RATE } from '../config/pricing';
 import { PAYMENT_METHOD } from '../config/options';
 import { calculateFare } from '../utils/calculateFare';
@@ -53,13 +54,22 @@ export const REJECTION_REASON = {
 export const REQUEST_TIMEOUT_MS = 15000;
 
 export const TRIP_UNAVAILABLE_ERROR = 'TRIP_UNAVAILABLE';
+export const TRIP_EXPIRED_ERROR = 'TRIP_EXPIRED';
+export const INVALID_RATING_ERROR = 'INVALID_RATING';
+
+export const MIN_RATING = 1;
+export const MAX_RATING = 5;
 
 const tripsRef = collection(db, 'trips');
 
 const toTrip = (snapshot) => ({ id: snapshot.id, ...snapshot.data() });
 
 export const createTripRequest = async ({ driverId, passengerId, origin, destination, category, paymentMethod }) => {
-  const matrix = await getDistanceMatrix(origin, destination);
+  const [matrix, originAddress, destinationAddress] = await Promise.all([
+    getDistanceMatrix(origin, destination),
+    getAddress(origin),
+    getAddress(destination),
+  ]);
   const estimate = calculateFare({
     distanceKm: matrix.distanceKm,
     durationMin: matrix.durationMin,
@@ -69,8 +79,8 @@ export const createTripRequest = async ({ driverId, passengerId, origin, destina
   const tripRef = await addDoc(tripsRef, {
     driverId,
     passengerId,
-    origin: { ...origin, address: matrix.originAddress },
-    destination: { ...destination, address: matrix.destinationAddress },
+    origin: { ...origin, address: originAddress },
+    destination: { ...destination, address: destinationAddress },
     distanceKm: matrix.distanceKm,
     durationMin: matrix.durationMin,
     category,
@@ -148,11 +158,24 @@ const getPickupEstimate = async (driverLocation, origin) => {
 export const acceptTrip = async ({ tripId, driverLocation, origin }) => {
   const pickup = await getPickupEstimate(driverLocation, origin);
 
-  await updateTripIfStatus(tripId, [TRIP_STATUS.REQUESTED], () => ({
-    status: TRIP_STATUS.ACCEPTED,
-    pickup,
-    acceptedAt: serverTimestamp(),
-  }));
+  try {
+    await updateTripIfStatus(tripId, [TRIP_STATUS.REQUESTED], (trip) => {
+      if (Date.now() >= trip.expiresAtMs) {
+        throw new Error(TRIP_EXPIRED_ERROR);
+      }
+
+      return {
+        status: TRIP_STATUS.ACCEPTED,
+        pickup,
+        acceptedAt: serverTimestamp(),
+      };
+    });
+  } catch (error) {
+    if (error.message === TRIP_EXPIRED_ERROR) {
+      await rejectTrip(tripId, REJECTION_REASON.TIMEOUT).catch(() => null);
+    }
+    throw error;
+  }
 };
 
 export const rejectTrip = (tripId, reason) =>
@@ -189,6 +212,7 @@ export const completeTrip = (tripId) =>
       durationMin: trip.durationMin,
       category: trip.category,
       tip: trip.tip,
+      commissionRate: trip.commissionRate,
     });
 
     return {
@@ -196,10 +220,24 @@ export const completeTrip = (tripId) =>
       fare,
       commission,
       driverEarnings,
-      rating: 3 + Math.floor(Math.random() * 3),
+      rating: null,
       completedAt: serverTimestamp(),
     };
   });
+
+export const rateTrip = (tripId, rating) => {
+  if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
+    return Promise.reject(new Error(INVALID_RATING_ERROR));
+  }
+
+  return updateTripIfStatus(tripId, HISTORY_TRIP_STATUSES, (trip) => {
+    if (trip.rating != null) {
+      throw new Error(TRIP_UNAVAILABLE_ERROR);
+    }
+
+    return { rating, ratedAt: serverTimestamp() };
+  });
+};
 
 export const markCashPayment = (tripId) =>
   runTransaction(db, async (transaction) => {

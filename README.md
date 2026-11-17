@@ -6,7 +6,7 @@ Aplicación móvil multiplataforma (iOS y Android) inspirada en Uber, versión c
 
 - React Native + Expo
 - React Navigation (Stack, Tabs, Drawer)
-- react-native-maps y Google Maps Platform (Directions, Distance Matrix)
+- react-native-maps y OSRM (distancia, tiempo y ruta)
 - Firebase (Firestore y Cloud Messaging)
 - Mercado Pago Checkout Pro (credenciales de prueba)
 - Cloudinary para imágenes
@@ -15,7 +15,7 @@ Aplicación móvil multiplataforma (iOS y Android) inspirada en Uber, versión c
 
 - Node.js LTS
 - Expo Go en el celular o un emulador Android / iOS
-- Cuenta de Google Cloud, Firebase, Cloudinary y cuentas de prueba de Mercado Pago
+- Cuenta de Firebase, Cloudinary y cuentas de prueba de Mercado Pago
 
 ## Instalación
 
@@ -33,7 +33,6 @@ Copia `.env.example` como `.env` y completa los valores. El archivo `.env` no se
 
 | Variable | Uso |
 | --- | --- |
-| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | Mapas, Directions y Distance Matrix |
 | `EXPO_PUBLIC_API_URL` | URL del backend de pagos |
 | `EXPO_PUBLIC_FIREBASE_*` | Configuración del proyecto Firebase |
 | `EXPO_PUBLIC_CLOUDINARY_*` | Subida de fotos de perfil, vehículo y documentos |
@@ -46,6 +45,14 @@ Copia `.env.example` como `.env` y completa los valores. El archivo `.env` no se
 ## Uso de IA
 
 Todo uso de herramientas de inteligencia artificial está documentado en la bitácora [docs/AI_LOG.md](docs/AI_LOG.md). Los bloques de código asistidos por IA se marcan con un comentario que remite a la entrada correspondiente.
+
+## Idiomas
+
+La app está disponible en español e inglés. Los textos viven en `src/i18n/es.js` y `src/i18n/en.js`, y `LanguageContext` expone la función `t` para traducirlos. El idioma se elige en el registro o en Perfil y configuración, se guarda en Firestore y en AsyncStorage, y se aplica en cuanto cambia.
+
+## Distancia y rutas
+
+La distancia, el tiempo y la ruta del viaje se calculan con el servidor público de OSRM (`router.project-osrm.org`), sin clave de API. Google Distance Matrix y Directions en su versión Legacy ya no se pueden habilitar en proyectos nuevos, y Routes API exige facturación. Las direcciones se obtienen con el geocodificador de `expo-location`.
 
 ## Backend de pagos (Mercado Pago)
 

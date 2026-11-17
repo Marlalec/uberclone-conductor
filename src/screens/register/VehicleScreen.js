@@ -5,11 +5,15 @@ import PhotoField from '../../components/PhotoField';
 import { buttonStyles } from '../../components/formStyles';
 import { useRegister } from '../../context/RegisterContext';
 import { CATEGORIES, VEHICLE_COLORS } from '../../config/options';
+import { useLanguage } from '../../context/LanguageContext';
+import { colors } from '../../theme';
 
 export const VEHICLE_FIELDS = ['category', 'plate', 'brand', 'model', 'year', 'color', 'capacity', 'vehiclePhoto'];
 
 export default function VehicleScreen({ navigation }) {
   const { vehicle, vehicleErrors, touched, isVehicleValid, updateVehicle, touchFields } = useRegister();
+
+  const { t } = useLanguage();
 
   const errorFor = (field) => (touched[field] ? vehicleErrors[field] : undefined);
 
@@ -27,14 +31,14 @@ export default function VehicleScreen({ navigation }) {
       automaticallyAdjustKeyboardInsets
     >
       <SelectField
-        label="Categoría"
+        label="register.category"
         options={CATEGORIES}
         value={vehicle.category}
         onChange={(value) => updateVehicle('category', value)}
         error={errorFor('category')}
       />
       <FormField
-        label="Placa"
+        label="register.plate"
         placeholder="ABC123"
         autoCapitalize="characters"
         autoCorrect={false}
@@ -44,24 +48,24 @@ export default function VehicleScreen({ navigation }) {
         error={errorFor('plate')}
       />
       <FormField
-        label="Marca"
-        placeholder="Ej: Chevrolet"
+        label="register.brand"
+        placeholder="register.brandPlaceholder"
         value={vehicle.brand}
         onChangeText={(value) => updateVehicle('brand', value)}
         maxLength={30}
         error={errorFor('brand')}
       />
       <FormField
-        label="Modelo"
-        placeholder="Ej: Onix"
+        label="register.model"
+        placeholder="register.modelPlaceholder"
         value={vehicle.model}
         onChangeText={(value) => updateVehicle('model', value)}
         maxLength={30}
         error={errorFor('model')}
       />
       <FormField
-        label="Año"
-        placeholder="Ej: 2020"
+        label="register.year"
+        placeholder="register.yearPlaceholder"
         keyboardType="number-pad"
         value={vehicle.year}
         onChangeText={(value) => updateVehicle('year', value)}
@@ -69,15 +73,15 @@ export default function VehicleScreen({ navigation }) {
         error={errorFor('year')}
       />
       <SelectField
-        label="Color"
+        label="register.color"
         options={VEHICLE_COLORS}
         value={vehicle.color}
         onChange={(value) => updateVehicle('color', value)}
         error={errorFor('color')}
       />
       <FormField
-        label="Capacidad de pasajeros"
-        placeholder="Ej: 4"
+        label="register.capacity"
+        placeholder="register.capacityPlaceholder"
         keyboardType="number-pad"
         value={vehicle.capacity}
         onChangeText={(value) => updateVehicle('capacity', value)}
@@ -85,13 +89,13 @@ export default function VehicleScreen({ navigation }) {
         error={errorFor('capacity')}
       />
       <PhotoField
-        label="Foto del vehículo (debe verse la placa)"
+        label="register.vehiclePhoto"
         value={vehicle.vehiclePhoto}
         onChange={(value) => updateVehicle('vehiclePhoto', value)}
         error={errorFor('vehiclePhoto')}
       />
       <Pressable style={buttonStyles.button} onPress={handleNext}>
-        <Text style={buttonStyles.text}>Siguiente</Text>
+        <Text style={buttonStyles.text}>{t('common.next')}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -101,6 +105,6 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 40,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
 });

@@ -42,5 +42,8 @@ yarn-error.*
 /android
 
 # local tools
-.claude/serviceAccountKey.json
+.claude/
+serviceAccountKey.json
 google-services.json
+
+backend/mp-test-accounts.txt

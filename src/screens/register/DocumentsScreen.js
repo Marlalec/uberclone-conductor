@@ -12,15 +12,17 @@ import { getTomorrow } from '../../utils/dates';
 import { requiresTechnicalInspection } from '../../utils/validators';
 import { DRIVER_EXISTS_ERROR, registerDriver } from '../../services/driversService';
 import { UPLOAD_ERROR } from '../../services/cloudinaryService';
+import { useLanguage } from '../../context/LanguageContext';
+import { colors } from '../../theme';
 
 const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100);
 
 const SUBMIT_ERRORS = {
-  [DRIVER_EXISTS_ERROR]: 'Ya existe un conductor registrado con ese documento',
-  [UPLOAD_ERROR]: 'No se pudieron subir las fotos, revisa tu conexión e intenta de nuevo',
+  [DRIVER_EXISTS_ERROR]: 'register.errors.driverExists',
+  [UPLOAD_ERROR]: 'register.errors.upload',
 };
 
-const DEFAULT_SUBMIT_ERROR = 'No se pudo enviar el registro, revisa tu conexión e intenta de nuevo';
+const DEFAULT_SUBMIT_ERROR = 'register.errors.submit';
 
 export default function DocumentsScreen() {
   const {
@@ -37,6 +39,7 @@ export default function DocumentsScreen() {
     resetRegister,
   } = useRegister();
   const { startSession } = useDriver();
+  const { t } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -53,6 +56,7 @@ export default function DocumentsScreen() {
       await startSession(driverId, personalData.language);
       resetRegister();
     } catch (error) {
+      console.error('registerDriver', error.message, error.cause ?? '');
       setSubmitError(SUBMIT_ERRORS[error.message] ?? DEFAULT_SUBMIT_ERROR);
     } finally {
       setSubmitting(false);
@@ -65,10 +69,10 @@ export default function DocumentsScreen() {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-      <Text style={styles.section}>Licencia de conducción</Text>
+      <Text style={styles.section}>{t('register.licenseSection')}</Text>
       <FormField
-        label="Número de licencia"
-        placeholder="Entre 6 y 10 dígitos"
+        label="register.licenseNumber"
+        placeholder="register.digits6to10"
         keyboardType="number-pad"
         value={documents.licenseNumber}
         onChangeText={(value) => updateDocuments('licenseNumber', value)}
@@ -76,13 +80,13 @@ export default function DocumentsScreen() {
         error={errorFor('licenseNumber')}
       />
       <PhotoField
-        label="Foto de la licencia"
+        label="register.licensePhoto"
         value={documents.licensePhoto}
         onChange={(value) => updateDocuments('licensePhoto', value)}
         error={errorFor('licensePhoto')}
       />
       <DateField
-        label="Fecha de vencimiento de la licencia"
+        label="register.licenseExpiry"
         value={documents.licenseExpiry}
         onChange={(value) => updateDocuments('licenseExpiry', value)}
         minimumDate={minimumExpiry}
@@ -91,36 +95,36 @@ export default function DocumentsScreen() {
 
       <Text style={styles.section}>SOAT</Text>
       <PhotoField
-        label="Foto del SOAT"
+        label="register.soatPhoto"
         value={documents.soatPhoto}
         onChange={(value) => updateDocuments('soatPhoto', value)}
         error={errorFor('soatPhoto')}
       />
       <DateField
-        label="Fecha de vencimiento del SOAT"
+        label="register.soatExpiry"
         value={documents.soatExpiry}
         onChange={(value) => updateDocuments('soatExpiry', value)}
         minimumDate={minimumExpiry}
         error={errorFor('soatExpiry')}
       />
 
-      <Text style={styles.section}>Revisión técnico-mecánica</Text>
+      <Text style={styles.section}>{t('register.inspectionSection')}</Text>
       {vehicleErrors.year ? (
-        <Text style={styles.note}>Completa el año del vehículo en la pestaña Vehículo para saber si aplica.</Text>
+        <Text style={styles.note}>{t('register.inspectionNeedsYear')}</Text>
       ) : null}
       {!vehicleErrors.year && !needsInspection ? (
-        <Text style={styles.note}>Por el año de tu vehículo aún no requieres revisión técnico-mecánica.</Text>
+        <Text style={styles.note}>{t('register.inspectionNotRequired')}</Text>
       ) : null}
       {needsInspection ? (
         <>
           <PhotoField
-            label="Foto de la revisión técnico-mecánica"
+            label="register.inspectionPhoto"
             value={documents.technicalInspectionPhoto}
             onChange={(value) => updateDocuments('technicalInspectionPhoto', value)}
             error={errorFor('technicalInspectionPhoto')}
           />
           <DateField
-            label="Fecha de vencimiento de la revisión"
+            label="register.inspectionExpiry"
             value={documents.technicalInspectionExpiry}
             onChange={(value) => updateDocuments('technicalInspectionExpiry', value)}
             minimumDate={minimumExpiry}
@@ -129,9 +133,9 @@ export default function DocumentsScreen() {
         </>
       ) : null}
 
-      <Text style={styles.section}>Pagos</Text>
+      <Text style={styles.section}>{t('register.paymentsSection')}</Text>
       <FormField
-        label="Correo de la cuenta de Mercado Pago"
+        label="register.paymentEmail"
         placeholder="nombre@dominio.com"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -141,24 +145,24 @@ export default function DocumentsScreen() {
         error={errorFor('paymentEmail')}
       />
       <CheckboxField
-        label={`Acepto los términos y condiciones. La plataforma cobra una comisión del ${COMMISSION_PERCENT} % sobre la tarifa de cada viaje.`}
+        label={{ key: 'register.terms', params: { percent: COMMISSION_PERCENT } }}
         value={documents.termsAccepted}
         onChange={(value) => updateDocuments('termsAccepted', value)}
         error={errorFor('termsAccepted')}
       />
 
       {!isPersonalValid ? (
-        <Text style={fieldStyles.error}>Completa correctamente la pestaña Datos personales</Text>
+        <Text style={fieldStyles.error}>{t('register.completePersonal')}</Text>
       ) : null}
-      {!isVehicleValid ? <Text style={fieldStyles.error}>Completa correctamente la pestaña Vehículo</Text> : null}
+      {!isVehicleValid ? <Text style={fieldStyles.error}>{t('register.completeVehicle')}</Text> : null}
       <Pressable
         style={[buttonStyles.button, !canSubmit && buttonStyles.disabled]}
         onPress={handleSubmit}
         disabled={!canSubmit}
       >
-        {submitting ? <ActivityIndicator color="#fff" /> : <Text style={buttonStyles.text}>Enviar registro</Text>}
+        {submitting ? <ActivityIndicator color={colors.surface} /> : <Text style={buttonStyles.text}>{t('register.submit')}</Text>}
       </Pressable>
-      {submitError ? <Text style={fieldStyles.error}>{submitError}</Text> : null}
+      {submitError ? <Text style={fieldStyles.error}>{t(submitError)}</Text> : null}
     </ScrollView>
   );
 }
@@ -167,18 +171,18 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 40,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   section: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#000',
+    color: colors.ink,
     marginTop: 8,
     marginBottom: 12,
   },
   note: {
     fontSize: 14,
-    color: '#555',
+    color: colors.textMuted,
     marginBottom: 16,
   },
 });

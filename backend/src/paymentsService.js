@@ -1,6 +1,12 @@
 import { FieldValue, getDb } from './firebase.js';
 import { createPreference, getPayment, searchPaymentsByReference } from './mercadoPago.js';
-import { PAYMENT_STATUS, buildPreferencePayload, extractPaymentId, mapPaymentStatus } from './payments.js';
+import {
+  PAYMENT_STATUS,
+  buildPreferencePayload,
+  extractPaymentId,
+  mapPaymentStatus,
+  matchesTripFare,
+} from './payments.js';
 
 export const TRIP_NOT_FOUND = 'TRIP_NOT_FOUND';
 export const TRIP_NOT_PAYABLE = 'TRIP_NOT_PAYABLE';
@@ -28,6 +34,10 @@ const applyPaymentToTrip = async (payment) => {
     }
 
     if (paymentStatus === PAYMENT_STATUS.APPROVED) {
+      if (!matchesTripFare(payment, trip)) {
+        throw new Error(AMOUNT_MISMATCH);
+      }
+
       const driverRef = db.collection('drivers').doc(trip.driverId);
       const driverSnap = await transaction.get(driverRef);
       const balance = driverSnap.get('balance') ?? 0;

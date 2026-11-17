@@ -11,17 +11,23 @@ import {
 } from '../../services/tripsService';
 import { createPaymentPreference, syncTripPayment } from '../../services/paymentsService';
 import { BACKEND_URL_MISSING } from '../../services/backendClient';
+import { simulatePassengerRating } from '../../services/tripSimulator';
+import { useLanguage } from '../../context/LanguageContext';
+import { colors, radius } from '../../theme';
 
-const API_URL_ERROR = 'Configura EXPO_PUBLIC_API_URL en el .env de la app para cobrar con Mercado Pago';
-const PREFERENCE_ERROR = 'No se pudo iniciar el cobro, revisa que el backend esté corriendo';
-const SYNC_ERROR = 'No se pudo verificar el pago, revisa que el backend esté corriendo';
-const CASH_ERROR = 'No se pudo registrar el pago en efectivo, intenta de nuevo';
-const SYNC_EMPTY = 'Mercado Pago aún no registra un pago para este viaje';
+const API_URL_ERROR = 'summary.errors.apiUrl';
+const PREFERENCE_ERROR = 'summary.errors.preference';
+const SYNC_ERROR = 'summary.errors.sync';
+const CASH_ERROR = 'summary.errors.cash';
+const RATING_ERROR = 'summary.errors.rating';
+const SYNC_EMPTY = 'summary.syncEmpty';
 
 function DetailRow({ label, value, highlighted }) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowLabel}>{t(label)}</Text>
       <Text style={[styles.rowValue, highlighted && styles.highlighted]}>{value}</Text>
     </View>
   );
@@ -29,6 +35,7 @@ function DetailRow({ label, value, highlighted }) {
 
 export default function TripSummaryScreen({ navigation, route }) {
   const { tripId } = route.params;
+  const { t } = useLanguage();
   const [trip, setTrip] = useState(undefined);
   const [working, setWorking] = useState('');
   const [error, setError] = useState('');
@@ -62,7 +69,7 @@ export default function TripSummaryScreen({ navigation, route }) {
         async () => {
           const { initPoint } = await createPaymentPreference(tripId, trip.fare);
           await Linking.openURL(initPoint);
-          setInfo('Cuando el pasajero pague, toca "Verificar pago" para actualizar el estado');
+          setInfo('summary.payHint');
         },
         PREFERENCE_ERROR
       ),
@@ -89,16 +96,21 @@ export default function TripSummaryScreen({ navigation, route }) {
     [runAction, tripId]
   );
 
+  const handleRating = useCallback(
+    () => runAction('rating', () => simulatePassengerRating(tripId), RATING_ERROR),
+    [runAction, tripId]
+  );
+
   if (!trip) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
 
   const isPaid = trip.status === TRIP_STATUS.PAID;
-  const statusLabel = paymentStatusLabel(trip.paymentStatus);
+  const statusLabel = t(paymentStatusLabel(trip.paymentStatus));
   const statusStyle = isPaid ? styles.statusPaid : trip.paymentStatus === PAYMENT_STATUS.REJECTED ? styles.statusRejected : styles.statusPending;
   const fare = trip.fare ?? trip.estimate.fare;
   const commission = trip.commission ?? trip.estimate.commission;
@@ -111,16 +123,33 @@ export default function TripSummaryScreen({ navigation, route }) {
         <Text style={styles.statusText}>{statusLabel}</Text>
       </View>
       <View style={styles.card}>
-        <DetailRow label="Origen" value={trip.origin.address} />
-        <DetailRow label="Destino" value={trip.destination.address} />
-        <DetailRow label="Tarifa final" value={formatCurrency(fare)} />
-        <DetailRow label={`Comisión de la plataforma (${commissionPercent} %)`} value={`- ${formatCurrency(commission)}`} />
-        {trip.tip > 0 ? <DetailRow label="Propina" value={formatCurrency(trip.tip)} /> : null}
-        <DetailRow label="Tu ganancia neta" value={formatCurrency(earnings)} highlighted />
-        <DetailRow label="Método de pago" value={optionLabel(PAYMENT_METHODS, trip.paymentMethod)} />
+        <DetailRow label="trip.origin" value={trip.origin.address} />
+        <DetailRow label="trip.destination" value={trip.destination.address} />
+        <DetailRow label="summary.finalFare" value={formatCurrency(fare)} />
+        <DetailRow label={t('summary.commission', { percent: commissionPercent })} value={`- ${formatCurrency(commission)}`} />
+        {trip.tip > 0 ? <DetailRow label="trip.tip" value={formatCurrency(trip.tip)} /> : null}
+        <DetailRow label="summary.netEarnings" value={formatCurrency(earnings)} highlighted />
+        <DetailRow label="trip.paymentMethod" value={t(optionLabel(PAYMENT_METHODS, trip.paymentMethod))} />
+        <DetailRow
+          label="trip.passengerRating"
+          value={trip.rating ? `${'★'.repeat(trip.rating)} (${trip.rating}/5)` : t('summary.ratingPending')}
+        />
       </View>
-      {info ? <Text style={styles.info}>{info}</Text> : null}
-      {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
+      {info ? <Text style={styles.info}>{t(info)}</Text> : null}
+      {error ? <Text style={fieldStyles.error}>{t(error)}</Text> : null}
+      {trip.rating == null ? (
+        <Pressable
+          style={[buttonStyles.button, styles.secondary, working !== '' && buttonStyles.disabled]}
+          onPress={handleRating}
+          disabled={working !== ''}
+        >
+          {working === 'rating' ? (
+            <ActivityIndicator color={colors.ink} />
+          ) : (
+            <Text style={[buttonStyles.text, styles.secondaryText]}>{t('summary.simulateRating')}</Text>
+          )}
+        </Pressable>
+      ) : null}
       {!isPaid && trip.paymentMethod === PAYMENT_METHOD.MERCADOPAGO ? (
         <>
           <Pressable
@@ -129,9 +158,9 @@ export default function TripSummaryScreen({ navigation, route }) {
             disabled={working !== ''}
           >
             {working === 'preference' ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.surface} />
             ) : (
-              <Text style={buttonStyles.text}>Cobrar con Mercado Pago</Text>
+              <Text style={buttonStyles.text}>{t('summary.chargeMercadoPago')}</Text>
             )}
           </Pressable>
           <Pressable
@@ -140,9 +169,9 @@ export default function TripSummaryScreen({ navigation, route }) {
             disabled={working !== ''}
           >
             {working === 'sync' ? (
-              <ActivityIndicator color="#000" />
+              <ActivityIndicator color={colors.ink} />
             ) : (
-              <Text style={[buttonStyles.text, styles.secondaryText]}>Verificar pago</Text>
+              <Text style={[buttonStyles.text, styles.secondaryText]}>{t('summary.verifyPayment')}</Text>
             )}
           </Pressable>
         </>
@@ -154,16 +183,16 @@ export default function TripSummaryScreen({ navigation, route }) {
           disabled={working !== ''}
         >
           {working === 'cash' ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color={colors.ink} />
           ) : (
             <Text style={[buttonStyles.text, styles.secondaryText]}>
-              {trip.paymentMethod === PAYMENT_METHOD.CASH ? 'Confirmar pago en efectivo' : 'Registrar pago en efectivo'}
+              {t(trip.paymentMethod === PAYMENT_METHOD.CASH ? 'summary.confirmCash' : 'summary.registerCash')}
             </Text>
           )}
         </Pressable>
       ) : (
         <Pressable style={buttonStyles.button} onPress={() => navigation.getParent()?.goBack()}>
-          <Text style={buttonStyles.text}>Volver al inicio</Text>
+          <Text style={buttonStyles.text}>{t('summary.backHome')}</Text>
         </Pressable>
       )}
     </ScrollView>
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     gap: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   centered: {
     alignItems: 'center',
@@ -188,51 +217,53 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   statusPaid: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: colors.successSoft,
   },
   statusPending: {
-    backgroundColor: '#fff4e5',
+    backgroundColor: colors.warningSoft,
   },
   statusRejected: {
-    backgroundColor: '#fdecea',
+    backgroundColor: colors.dangerSoft,
   },
   statusText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222',
+    color: colors.text,
   },
   card: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
     padding: 16,
     gap: 12,
+    backgroundColor: colors.surface,
   },
   row: {
     gap: 2,
   },
   rowLabel: {
     fontSize: 13,
-    color: '#555',
+    color: colors.textMuted,
   },
   rowValue: {
     fontSize: 16,
-    color: '#000',
+    color: colors.ink,
   },
   highlighted: {
     fontSize: 18,
     fontWeight: '700',
+    color: colors.ink,
   },
   info: {
     fontSize: 14,
-    color: '#555',
+    color: colors.textMuted,
   },
   secondary: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: colors.ink,
   },
   secondaryText: {
-    color: '#000',
+    color: colors.ink,
   },
 });

@@ -3,9 +3,11 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { CATEGORIES, PAYMENT_METHODS, optionLabel, paymentStatusLabel } from '../../config/options';
 import { subscribeToTrip } from '../../services/tripsService';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatDateTime } from '../../utils/dates';
 import { formatCurrency } from '../../utils/format';
 import { decodePolyline, toCoordinate } from '../../utils/maps';
+import { colors } from '../../theme';
 
 const MAP_DELTA = {
   latitudeDelta: 0.02,
@@ -20,9 +22,11 @@ const MAP_PADDING = {
 };
 
 function DetailRow({ label, value, highlighted }) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowLabel}>{t(label)}</Text>
       <Text style={[styles.rowValue, highlighted && styles.highlighted]}>{value}</Text>
     </View>
   );
@@ -30,6 +34,7 @@ function DetailRow({ label, value, highlighted }) {
 
 export default function TripDetailScreen({ navigation, route }) {
   const { tripId } = route.params;
+  const { t, locale } = useLanguage();
   const [trip, setTrip] = useState(undefined);
   const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef(null);
@@ -54,7 +59,7 @@ export default function TripDetailScreen({ navigation, route }) {
   if (!trip) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
@@ -72,30 +77,30 @@ export default function TripDetailScreen({ navigation, route }) {
         initialRegion={{ ...toCoordinate(trip.origin), ...MAP_DELTA }}
         onMapReady={() => setMapReady(true)}
       >
-        <Marker coordinate={toCoordinate(trip.origin)} title="Origen" pinColor="green" />
-        <Marker coordinate={toCoordinate(trip.destination)} title="Destino" />
+        <Marker coordinate={toCoordinate(trip.origin)} title={t('trip.origin')} pinColor="green" />
+        <Marker coordinate={toCoordinate(trip.destination)} title={t('trip.destination')} />
         {routeCoordinates.length > 0 ? (
-          <Polyline coordinates={routeCoordinates} strokeWidth={5} strokeColor="#000" />
+          <Polyline coordinates={routeCoordinates} strokeWidth={5} strokeColor={colors.ink} />
         ) : null}
       </MapView>
       <ScrollView contentContainerStyle={styles.details}>
-        <DetailRow label="Fecha y hora" value={completedDate ? formatDateTime(completedDate) : '—'} />
-        <DetailRow label="Origen" value={trip.origin.address} />
-        <DetailRow label="Destino" value={trip.destination.address} />
-        <DetailRow label="Distancia" value={`${trip.distanceKm.toLocaleString('es-CO')} km`} />
-        <DetailRow label="Duración" value={`${trip.durationMin} min`} />
-        <DetailRow label="Categoría" value={optionLabel(CATEGORIES, trip.category)} />
+        <DetailRow label="detail.dateTime" value={completedDate ? formatDateTime(completedDate, locale) : '—'} />
+        <DetailRow label="trip.origin" value={trip.origin.address} />
+        <DetailRow label="trip.destination" value={trip.destination.address} />
+        <DetailRow label="trip.distance" value={`${trip.distanceKm.toLocaleString(locale)} km`} />
+        <DetailRow label="trip.duration" value={`${trip.durationMin} min`} />
+        <DetailRow label="trip.category" value={t(optionLabel(CATEGORIES, trip.category))} />
         <DetailRow
-          label="Pago"
-          value={`${optionLabel(PAYMENT_METHODS, trip.paymentMethod)} · ${paymentStatusLabel(trip.paymentStatus)}`}
+          label="detail.payment"
+          value={`${t(optionLabel(PAYMENT_METHODS, trip.paymentMethod))}, ${t(paymentStatusLabel(trip.paymentStatus))}`}
         />
-        <DetailRow label="Tarifa" value={formatCurrency(fare)} />
-        <DetailRow label="Comisión" value={`- ${formatCurrency(commission)}`} />
-        {trip.tip > 0 ? <DetailRow label="Propina" value={formatCurrency(trip.tip)} /> : null}
-        <DetailRow label="Ganancia neta" value={formatCurrency(earnings)} highlighted />
+        <DetailRow label="detail.fare" value={formatCurrency(fare)} />
+        <DetailRow label="detail.commission" value={`- ${formatCurrency(commission)}`} />
+        {trip.tip > 0 ? <DetailRow label="trip.tip" value={formatCurrency(trip.tip)} /> : null}
+        <DetailRow label="trip.netEarnings" value={formatCurrency(earnings)} highlighted />
         <DetailRow
-          label="Calificación del pasajero"
-          value={trip.rating ? `${'★'.repeat(trip.rating)} (${trip.rating}/5)` : 'Sin calificación'}
+          label="trip.passengerRating"
+          value={trip.rating ? `${'★'.repeat(trip.rating)} (${trip.rating}/5)` : t('detail.noRating')}
         />
       </ScrollView>
     </View>
@@ -105,7 +110,7 @@ export default function TripDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   centered: {
     alignItems: 'center',
@@ -123,14 +128,15 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 13,
-    color: '#555',
+    color: colors.textMuted,
   },
   rowValue: {
     fontSize: 16,
-    color: '#000',
+    color: colors.ink,
   },
   highlighted: {
     fontSize: 18,
     fontWeight: '700',
+    color: colors.ink,
   },
 });

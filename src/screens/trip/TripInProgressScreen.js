@@ -3,7 +3,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { buttonStyles, fieldStyles } from '../../components/formStyles';
 import { useDriver } from '../../context/DriverContext';
+import { useLanguage } from '../../context/LanguageContext';
 import useDriverLocation from '../../hooks/useDriverLocation';
+import useRouteSimulation from '../../hooks/useRouteSimulation';
 import {
   TRIP_STATUS,
   cancelTrip,
@@ -13,6 +15,7 @@ import {
   subscribeToTrip,
 } from '../../services/tripsService';
 import { decodePolyline, toCoordinate, toLatLng } from '../../utils/maps';
+import { colors, radius } from '../../theme';
 
 const MAP_DELTA = {
   latitudeDelta: 0.02,
@@ -26,20 +29,23 @@ const MAP_PADDING = {
   left: 40,
 };
 
+const CAR_ANCHOR = { x: 0.5, y: 0.5 };
+
 const STATUS_TITLES = {
-  [TRIP_STATUS.ACCEPTED]: 'Calculando la ruta al punto de recogida',
-  [TRIP_STATUS.DRIVER_ARRIVING]: 'Ve al punto de recogida',
-  [TRIP_STATUS.IN_PROGRESS]: 'Lleva al pasajero a su destino',
+  [TRIP_STATUS.ACCEPTED]: 'trip.calculatingPickup',
+  [TRIP_STATUS.DRIVER_ARRIVING]: 'trip.goToPickup',
+  [TRIP_STATUS.IN_PROGRESS]: 'trip.goToDestination',
 };
 
-const PICKUP_ROUTE_ERROR = 'No se pudo calcular la ruta al punto de recogida';
-const TRIP_ROUTE_ERROR = 'No se pudo calcular la ruta al destino, intenta de nuevo';
-const COMPLETE_ERROR = 'No se pudo finalizar el viaje, intenta de nuevo';
-const CANCEL_ERROR = 'No se pudo cancelar el viaje, intenta de nuevo';
+const PICKUP_ROUTE_ERROR = 'trip.errors.pickupRoute';
+const TRIP_ROUTE_ERROR = 'trip.errors.tripRoute';
+const COMPLETE_ERROR = 'trip.errors.complete';
+const CANCEL_ERROR = 'trip.errors.cancel';
 
 export default function TripInProgressScreen({ navigation, route }) {
   const { tripId } = route.params;
   const { driverId } = useDriver();
+  const { t, locale } = useLanguage();
   const { location, error: locationError } = useDriverLocation({ driverId, isTracking: true });
   const [trip, setTrip] = useState(undefined);
   const [mapReady, setMapReady] = useState(false);
@@ -92,6 +98,14 @@ export default function TripInProgressScreen({ navigation, route }) {
     [activePolyline]
   );
 
+  const carPosition = useRouteSimulation(routeCoordinates);
+  const carCoordinate = carPosition
+    ? { latitude: carPosition.latitude, longitude: carPosition.longitude }
+    : null;
+  const remainingRoute = carPosition
+    ? [carCoordinate, ...routeCoordinates.slice(carPosition.nextIndex)]
+    : routeCoordinates;
+
   useEffect(() => {
     if (mapReady && routeCoordinates.length > 0) {
       mapRef.current?.fitToCoordinates(routeCoordinates, { edgePadding: MAP_PADDING, animated: true });
@@ -122,7 +136,7 @@ export default function TripInProgressScreen({ navigation, route }) {
   if (!trip) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
@@ -141,25 +155,34 @@ export default function TripInProgressScreen({ navigation, route }) {
         showsUserLocation
         onMapReady={() => setMapReady(true)}
       >
-        <Marker coordinate={toCoordinate(origin)} title="Punto de recogida" pinColor="green" />
-        {isInProgress ? <Marker coordinate={toCoordinate(destination)} title="Destino" /> : null}
-        {routeCoordinates.length > 0 ? (
-          <Polyline coordinates={routeCoordinates} strokeWidth={5} strokeColor="#000" />
+        <Marker coordinate={toCoordinate(origin)} title={t('trip.pickupPoint')} pinColor="green" />
+        {isInProgress ? <Marker coordinate={toCoordinate(destination)} title={t('trip.destination')} /> : null}
+        {remainingRoute.length > 1 ? (
+          <Polyline coordinates={remainingRoute} strokeWidth={5} strokeColor={colors.ink} />
+        ) : null}
+        {carPosition ? (
+          <Marker
+            coordinate={carCoordinate}
+            anchor={CAR_ANCHOR}
+            title={t('trip.simulatedDriver')}
+          >
+            <Text style={[styles.car, carPosition.facingEast && styles.carFacingEast]}>🚗</Text>
+          </Marker>
         ) : null}
       </MapView>
       <View style={styles.panel}>
-        <Text style={styles.title}>{STATUS_TITLES[status]}</Text>
+        <Text style={styles.title}>{t(STATUS_TITLES[status])}</Text>
         <Text style={styles.address}>{target.address}</Text>
         {activeLeg ? (
           <Text style={styles.eta}>
-            {activeLeg.durationMin} min · {activeLeg.distanceKm.toLocaleString('es-CO')} km
+            {activeLeg.durationMin} min · {activeLeg.distanceKm.toLocaleString(locale)} km
           </Text>
         ) : null}
-        {locationError ? <Text style={fieldStyles.error}>{locationError}</Text> : null}
-        {error ? <Text style={fieldStyles.error}>{error}</Text> : null}
+        {locationError ? <Text style={fieldStyles.error}>{t(locationError)}</Text> : null}
+        {error ? <Text style={fieldStyles.error}>{t(error)}</Text> : null}
         {status === TRIP_STATUS.ACCEPTED && error === PICKUP_ROUTE_ERROR ? (
           <Pressable style={buttonStyles.button} onPress={loadPickupRoute} disabled={updating}>
-            <Text style={buttonStyles.text}>Reintentar</Text>
+            <Text style={buttonStyles.text}>{t('common.retry')}</Text>
           </Pressable>
         ) : null}
         {status === TRIP_STATUS.DRIVER_ARRIVING ? (
@@ -168,7 +191,7 @@ export default function TripInProgressScreen({ navigation, route }) {
             onPress={handlePassengerOnBoard}
             disabled={updating}
           >
-            {updating ? <ActivityIndicator color="#fff" /> : <Text style={buttonStyles.text}>Pasajero a bordo</Text>}
+            {updating ? <ActivityIndicator color={colors.surface} /> : <Text style={buttonStyles.text}>{t('trip.passengerOnBoard')}</Text>}
           </Pressable>
         ) : null}
         {isInProgress ? (
@@ -177,12 +200,12 @@ export default function TripInProgressScreen({ navigation, route }) {
             onPress={handleComplete}
             disabled={updating}
           >
-            {updating ? <ActivityIndicator color="#fff" /> : <Text style={buttonStyles.text}>Finalizar viaje</Text>}
+            {updating ? <ActivityIndicator color={colors.surface} /> : <Text style={buttonStyles.text}>{t('trip.complete')}</Text>}
           </Pressable>
         ) : null}
         {canCancel ? (
           <Pressable style={[buttonStyles.button, styles.cancel]} onPress={handleCancel} disabled={updating}>
-            <Text style={[buttonStyles.text, styles.cancelText]}>Cancelar viaje</Text>
+            <Text style={[buttonStyles.text, styles.cancelText]}>{t('trip.cancel')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -193,11 +216,17 @@ export default function TripInProgressScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   centered: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  car: {
+    fontSize: 28,
+  },
+  carFacingEast: {
+    transform: [{ scaleX: -1 }],
   },
   panel: {
     position: 'absolute',
@@ -206,32 +235,33 @@ const styles = StyleSheet.create({
     bottom: 24,
     padding: 16,
     gap: 8,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 2 },
     elevation: 6,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
+    color: colors.text,
   },
   address: {
     fontSize: 15,
-    color: '#222',
+    color: colors.text,
   },
   eta: {
     fontSize: 14,
-    color: '#555',
+    color: colors.textMuted,
   },
   cancel: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#d32f2f',
+    borderColor: colors.danger,
   },
   cancelText: {
-    color: '#d32f2f',
+    color: colors.danger,
   },
 });
